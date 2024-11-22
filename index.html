@@ -50,6 +50,7 @@
             const startIndex = hasHeader ? 1 : 0;
 
             let data = [];
+            let units = "";
             for (let i = startIndex; i < rows.length; i++) {
                 const row = rows[i];
                 if (row.length < 4) continue;
@@ -57,7 +58,8 @@
                 const date = new Date(row[0]);
                 const amount = parseFloat(row[1].replace(/[^0-9\.]/g, ''));
                 const usage = parseFloat(row[2].replace(/[^0-9\.]/g, ''));
-                const units = row[3];
+                //const units = row[3];
+                units = row[3];
                 
                 if (!isNaN(amount) && !isNaN(usage)) {
                     let days = 30; // Default value for the first row
@@ -66,8 +68,8 @@
                         days = Math.round((date - prevDate) / (1000 * 60 * 60 * 24));
                     }
                     const avgAmountPerDay = amount / days;                      // Dollars
-                    const avgUsagePerDay = usage / days;                        // kWh
-                    const DailyRate = avgAmountPerDay / avgUsagePerDay;      // $/kWh
+                    const avgUsagePerDay = usage / days;                        // units
+                    const DailyRate = avgAmountPerDay / avgUsagePerDay;      // $/unit
                     
                     data.push({ date: row[0], amount, usage, avgAmountPerDay, avgUsagePerDay, units, days, DailyRate });
                 }
@@ -76,12 +78,12 @@
             // Sort data by date in ascending order
             data.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-            displayTable(data);
-            generateChart(data);
+            displayTable(data, units);
+            generateChart(data, units);
         }
 
-        function displayTable(data) {
-            let html = '<table><tr><th>Invoice Date</th><th>Amount Owed ($)</th><th>Usage (kWh)</th><th>Number of Days in Period</th><th>Avg $ per Day</th><th>Avg Usage per Day (kWh)</th><th>Effective Rate ($/kWh)</th></tr>';
+        function displayTable(data, units) {
+            let html = '<table><tr><th>Invoice Date</th><th>Amount Owed ($)</th><th>Usage ('+units+')</th><th>Number of Days in Period</th><th>Avg $ per Day</th><th>Avg Usage per Day ('+units+')</th><th>Effective Rate ($/'+units+')</th></tr>';
             data.forEach(row => {
                 html += `<tr>
                             <td>${row.date}</td>
@@ -98,7 +100,7 @@
             document.getElementById('outputTable').innerHTML = html;
         }
 
-        function generateChart(data) {
+        function generateChart(data, units) {
             const labels = data.map(row => row.date);
             const avgUsageData = data.map(row => row.avgUsagePerDay);
 
@@ -109,7 +111,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Avg Usage per Day (kWh)',
+                            label: 'Avg Usage per Day ('+units+')',
                             data: avgUsageData,
                             backgroundColor: 'rgba(75, 192, 192, 0.6)',
                             borderColor: 'rgba(75, 192, 192, 1)',
@@ -132,7 +134,7 @@
                             },
                             title: {
                                 display: true,
-                                text: 'Average kWh used per day'
+                                text: 'Average '+units+' used per day'
                             },
                             grid: {
                                 display: false
@@ -146,7 +148,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'kWh'
+                                text: units
                             }
                         }
                     },
@@ -159,7 +161,7 @@
                             enabled: true,
                             callbacks: {
                                 label: function(context) {
-                                    return `${context.dataset.label}: ${context.raw.toFixed(2)} kWh`;
+                                    return `${context.dataset.label}: ${context.raw.toFixed(2)} ${units}`;
                                 }
                             }
                         }
