@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Invoice Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #inputArea {
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+        table {
+            margin-top: 20px;
+        }
+        #usageChartContainer {
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Electricity Invoice Analysis</h1>
+    <div id="inputArea">
+        <textarea id="dataInput" rows="10" cols="100" placeholder="Paste your table data here..."></textarea><br>
+        <button onclick="processData()">Analyze Data</button>
+    </div>
+    <div id="usageChartContainer">
+        <canvas id="usageChart"></canvas>
+    </div>
+    <div id="outputTable"></div>
+
+    <script>
+        function processData() {
+            const input = document.getElementById('dataInput').value;
+            const rows = input.split('\n').map(row => row.split('\t'));
+            
+            // Parse headers if they exist
+            const hasHeader = isNaN(Date.parse(rows[0][0]));
+            const startIndex = hasHeader ? 1 : 0;
+
+            let data = [];
+            for (let i = startIndex; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length < 4) continue;
+                
+                const date = new Date(row[0]);
+                const amount = parseFloat(row[1].replace(/[^0-9\.]/g, ''));
+                const usage = parseFloat(row[2].replace(/[^0-9\.]/g, ''));
+                const units = row[3];
+                
+                if (!isNaN(amount) && !isNaN(usage)) {
+                    let days = 30; // Default value for the first row
+                    if (i < rows.length - 1) { // Calculate days based on the next row
+                        const prevDate = new Date(rows[i + 1][0]);
+                        days = Math.round((date - prevDate) / (1000 * 60 * 60 * 24));
+                    }
+                    const avgAmountPerDay = amount / days;
+                    const avgUsagePerDay = usage / days;
+                    
+                    data.push({ date: row[0], amount, usage, avgAmountPerDay, avgUsagePerDay, units, days });
+                }
+            }
+
+            // Sort data by date in ascending order
+            data.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            displayTable(data);
+            generateChart(data);
+        }
+
+        function displayTable(data) {
+            let html = '<table><tr><th>Invoice Date</th><th>Amount Owed ($)</th><th>Usage (kWh)</th><th>Number of Days in Period</th><th>Avg $ per Day</th><th>Avg Usage per Day (kWh)</th></tr>';
+            data.forEach(row => {
+                html += `<tr>
+                            <td>${row.date}</td>
+                            <td>${row.amount.toFixed(2)}</td>
+                            <td>${row.usage.toFixed(2)}</td>
+                            <td>${row.days}</td>
+                            <td>${row.avgAmountPerDay.toFixed(2)}</td>
+                            <td>${row.avgUsagePerDay.toFixed(2)}</td>
+                         </tr>`;
+            });
+            html += '</table>';
+
+            document.getElementById('outputTable').innerHTML = html;
+        }
+
+        function generateChart(data) {
+            const labels = data.map(row => row.date);
+            const avgUsageData = data.map(row => row.avgUsagePerDay);
+
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Avg Usage per Day (kWh)',
+                            data: avgUsageData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxTicksLimit: 10,
+                                callback: function(value, index, values) {
+                                    return labels[index];
+                                },
+                                color: '#000',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Average kWh used per day'
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 90,
+                                minRotation: 90
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'kWh'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.toFixed(2)} kWh`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
