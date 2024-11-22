@@ -65,10 +65,11 @@
                         const prevDate = new Date(rows[i + 1][0]);
                         days = Math.round((date - prevDate) / (1000 * 60 * 60 * 24));
                     }
-                    const avgAmountPerDay = amount / days;
-                    const avgUsagePerDay = usage / days;
+                    const avgAmountPerDay = amount / days;                      // Dollars
+                    const avgUsagePerDay = usage / days;                        // kWh
+                    const DailyRate = avgAmountPerDay / avgUsagePerDay;      // $/kWh
                     
-                    data.push({ date: row[0], amount, usage, avgAmountPerDay, avgUsagePerDay, units, days });
+                    data.push({ date: row[0], amount, usage, avgAmountPerDay, avgUsagePerDay, units, days, DailyRate });
                 }
             }
 
@@ -80,7 +81,7 @@
         }
 
         function displayTable(data) {
-            let html = '<table><tr><th>Invoice Date</th><th>Amount Owed ($)</th><th>Usage (kWh)</th><th>Number of Days in Period</th><th>Avg $ per Day</th><th>Avg Usage per Day (kWh)</th></tr>';
+            let html = '<table><tr><th>Invoice Date</th><th>Amount Owed ($)</th><th>Usage (kWh)</th><th>Number of Days in Period</th><th>Avg $ per Day</th><th>Avg Usage per Day (kWh)</th><th>Effective Rate ($/kWh)</th></tr>';
             data.forEach(row => {
                 html += `<tr>
                             <td>${row.date}</td>
@@ -89,6 +90,7 @@
                             <td>${row.days}</td>
                             <td>${row.avgAmountPerDay.toFixed(2)}</td>
                             <td>${row.avgUsagePerDay.toFixed(2)}</td>
+                            <td>${row.DailyRate.toFixed(4)}</td>
                          </tr>`;
             });
             html += '</table>';
